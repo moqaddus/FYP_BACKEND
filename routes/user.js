@@ -7,7 +7,8 @@ import { authenticateUser } from "../middleware/commonUser.js";
 import { updateUser,deleteUser,getOneUser,uploadProfileImg ,
     getEventsByUserInterest,getUserOrganizationsEvents,
     updateUserOrganizations,getUsertype, getOrganizationForUser,
-    followOrganization,unfollowOrganization,getFollowersOfUser} from "../controller/userController.js";
+    followOrganization,unfollowOrganization,getFollowersOfUser,
+getEventsOfAttendees} from "../controller/userController.js";
 import {upload} from "../middleware/multer.js";
 
 import {v4 as uuidv4 } from 'uuid';
@@ -40,6 +41,7 @@ router.post('/followOrg/:orgId/:userId',authenticatePlatfromUser,followOrganizat
 router.delete('/unFollowOrg/:orgId/:userId',authenticatePlatfromUser,unfollowOrganization);
 // get user follower
 router.get('/followersOfUser/:userId',authenticatePlatfromUser,getFollowersOfUser)
+router.get('/eventsForReview/:attendeeId',authenticatePlatfromUser,getEventsOfAttendees);
 export default router;
 
 

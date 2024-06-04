@@ -1,9 +1,10 @@
 import UserComplaint from "../models/contactUs.js";
 import nodemailer from 'nodemailer';
 import sgMail from '@sendgrid/mail';
+import { API_KEY } from "../config/index.js";
 
 
-sgMail.setApiKey('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');
+sgMail.setApiKey(API_KEY);
 
 
 const transporter = nodemailer.createTransport({
@@ -11,7 +12,7 @@ const transporter = nodemailer.createTransport({
   service: 'SendGrid',
   auth: {
     user: 'apikey', // Your email address
-    pass: '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', // Your email password
+    pass: API_KEY, // Your email password
   },
 });
 

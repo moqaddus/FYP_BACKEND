@@ -9,6 +9,7 @@ import {
   getOneUserforOrg,
   getUserforOrganization,
   checkUserFollowOrganization,
+  getFollowersOfOrganization
 } from "../controller/orgController.js";
 import { addUser } from "../controller/simpleUser.js";
 import { authenticateOrgAdmin } from "../middleware/verifyOrgtokens.js";
@@ -37,4 +38,7 @@ router.get("/getOneUser/:userId", authenticateOrgAdmin, getOneUserforOrg);
 router.get('/profile/user/:userId',authenticateOrgAdmin,getUserforOrganization);
 // to check organization is followed by user or not
 router.get('/isUserFollowOrg/:orgId/:userId',checkUserFollowOrganization);
+// organization followers get
+router.get('/followersOfOrganization/:orgId',authenticateOrgAdmin,getFollowersOfOrganization)
+
 export default router;

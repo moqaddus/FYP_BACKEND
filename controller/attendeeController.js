@@ -6,17 +6,17 @@ import nodemailer from "nodemailer";
 import sgMail from "@sendgrid/mail";
 import User from "../models/user.js";
 import mongoose from "mongoose";
+import { API_KEY } from "../config/index.js";
 
-sgMail.setApiKey(
-  "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"
-);
+
+sgMail.setApiKey(API_KEY);
 
 const transporter = nodemailer.createTransport({
   // Configure your email service provider here
   service: "SendGrid",
   auth: {
     user: "apikey", // Your email address
-    pass: "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", // Your email password
+    pass: API_KEY, // Your email password
   },
 });
 
@@ -213,5 +213,90 @@ export const getIfUserIsAttendee = async (req, res, next) => {
     res.status(200).json({ buy });
   } catch (error) {
     next(error);
+  }
+};
+
+// export const reviewAndRatingOfEvent=async (req, res) => {
+//     try {
+//       const eventId = req.params.eventId;
+  
+//       // Find the event name
+//       const event = await Event.findById(eventId);
+//       if (!event) {
+//         return res.status(404).json({ error: 'Event not found' });
+//       }
+//       const eventName = event.Name;
+  
+//       // Find reviews and ratings for the event
+//       const reviewsAndRatings = await Attendee.find(
+//         { EventID: eventId, Rating: { $exists: true }, Review: { $exists: true } },
+//         'Rating Review -_id'
+//       );
+//       console.log(reviewsAndRatings + eventName);
+//       res.json({ eventName, reviewsAndRatings });
+//     } catch (error) {
+//       console.error('Error fetching reviews and ratings:', error);
+//       res.status(500).json({ error: 'Internal Server Error' });
+//     }
+//   };
+
+export const reviewAndRatingOfEvent = async (req, res) => {
+  try {
+    const eventId = req.params.eventId;
+
+    // Find the event name
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    const eventName = event.Name;
+
+    // Find reviews and ratings for the event, considering only checked-in attendees
+    const reviewsAndRatings = await Attendee.find(
+      {
+        EventID: eventId,
+        Rating: { $exists: true },
+        Review: { $exists: true },
+        CheckedIn: true, // Filter for checked-in attendees
+      },
+      'Rating Review -_id' // Projection to include relevant fields, exclude ID
+    );
+
+    res.json({ eventName, reviewsAndRatings });
+  } catch (error) {
+    console.error('Error fetching reviews and ratings:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+export const getAverageRating=async (req, res) => {
+  try {
+    const { eventId } = req.params;
+
+    // Retrieve all attendees for the specified event from the database
+    const attendees = await Attendee.find({ EventID: eventId });
+
+    if (!attendees || attendees.length === 0) {
+      return res.status(404).json({ error: 'No attendees found for the event' });
+    }
+
+    // Calculate total rating and count of ratings
+    let totalRating = 0;
+    let ratingCount = 0;
+    attendees.forEach(attendee => {
+      if (attendee.Rating !== undefined && attendee.Rating !== null) {
+        totalRating += attendee.Rating;
+        ratingCount++;
+      }
+    });
+
+    // Calculate average rating
+    const averageRating = ratingCount > 0 ? totalRating / ratingCount : 0;
+
+    // Send response with average rating
+    res.status(200).json({ averageRating });
+  } catch (error) {
+    console.error('Error calculating average rating:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };

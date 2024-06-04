@@ -20,7 +20,7 @@ router.patch('/update', updateUserInterests);
 router.post('/add/:userID', addUserInterest );
 
 // Delete user interest
-router.delete('/delete', deleteUserInterest);
+router.delete('/delete/:userId/:interestId', deleteUserInterest);
 
 // Get all user interests
 router.get('/getAll/:userID', getAllUserInterests);

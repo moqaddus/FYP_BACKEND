@@ -29,6 +29,8 @@ export const checkout = async (req, res, next) => {
         };
       }),
 
+      // success_url: `/payment/success?eventId=${req.body.eventId}`,
+      // cancel_url: "http://localhost:5173/payment/cancel",
       success_url: `https://eventhubfrontend.vercel.app/payment/success?eventId=${req.body.eventId}`,
       cancel_url: "https://eventhubfrontend.vercel.app/payment/cancel",
     });

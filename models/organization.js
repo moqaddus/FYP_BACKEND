@@ -6,7 +6,9 @@ const orgSchema=new Schema({
   Status: { type: String, enum: ['Gold', 'Silver', 'Bronze'] },
   Description: { type: String },
   ImagePath:{type:String}, //change
-  OrganizationEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Event',required:false }],
+  OrganizationEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Event',required:false }], 
+  UserFollowers:[{ type: mongoose.Schema.Types.ObjectId, ref: 'platformUser' }] // 31 may 2024
+ 
 
 },
 {timestamps:true}

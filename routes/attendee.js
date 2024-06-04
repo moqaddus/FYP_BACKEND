@@ -5,6 +5,8 @@ import {
   postReviewAndRating,
   sendTicketCode,
   getIfUserIsAttendee,
+  reviewAndRatingOfEvent,
+  getAverageRating
 } from "../controller/attendeeController.js"; // Adjust the path accordingly
 import { authenticatePlatfromUser } from "../middleware/verifyPlatformUser.js";
 
@@ -15,6 +17,8 @@ router.post("/create/:eventId/:tokenId", createTicketAndAttendee);
 router.post("/sendTicket/:userId/:ticketId", sendTicketCode);
 router.get("/event/:eventId", getAttendeesForEvent);
 router.post("/post-review/:attendeeId", postReviewAndRating);
+router.get("/reviewOfEvent/:eventId",reviewAndRatingOfEvent);
+router.get("/averageRating/:eventId",getAverageRating);
 //router.get("/get/:eventId", getAllUsersOfEvent);
 // Export the router
 router.get(

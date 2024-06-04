@@ -124,21 +124,51 @@ export const updateUserInterests = async (req, res) => {
 };
 
 // i made it may 4 
+// export const getUserInterestNames = async (req, res) => {
+//   try {
+//     const { userId } = req.params;
+//     if (!userId) {
+//       return res.status(400).json({ message: 'userId is required' });
+//     }
+
+//     // Find the user by ID
+//     const userCommon=await User.findById(userId);
+//     if(!userCommon)
+//     {
+//       return res.status(404).json({ message: `User with username ${username} not found` });
+//     }
+//     const user = await PlatformUser.findOne({ ID:userCommon._id });
+
+//     if (!user) {
+//       return res.status(404).json({ message: 'User not found' });
+//     }
+
+//     // Retrieve interests for the user
+//     const userInterests = await Interest.find({ _id: { $in: user.Interests } });
+
+//     // Extract interest names
+//     const interestNames = userInterests.map(interest => interest.Name);
+//     res.status(200).json({ interestNames });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+    
+//   }
+// };
+
 export const getUserInterestNames = async (req, res) => {
   try {
     const { userId } = req.params;
-    console.log(userId+"     my id ");
     if (!userId) {
       return res.status(400).json({ message: 'userId is required' });
     }
 
     // Find the user by ID
-    const userCommon=await User.findById(userId);
-    if(!userCommon)
-    {
-      return res.status(404).json({ message: `User with username ${username} not found` });
+    const userCommon = await User.findById(userId);
+    if (!userCommon) {
+      return res.status(404).json({ message: `User with userId ${userId} not found` });
     }
-    const user = await PlatformUser.findOne({ ID:userCommon._id });
+    
+    const user = await PlatformUser.findOne({ ID: userCommon._id });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -147,14 +177,18 @@ export const getUserInterestNames = async (req, res) => {
     // Retrieve interests for the user
     const userInterests = await Interest.find({ _id: { $in: user.Interests } });
 
-    // Extract interest names
-    const interestNames = userInterests.map(interest => interest.Name);
-    res.status(200).json({ interestNames });
+    // Extract interest names and _id
+    const interestDetails = userInterests.map(interest => ({
+      _id: interest._id,
+      Name: interest.Name
+    }));
+    
+    res.status(200).json({ interests: interestDetails });
   } catch (error) {
     res.status(500).json({ error: error.message });
-    
   }
 };
+
 
 //   i made it may 3
 export const addUserInterest = async (req, res) => {
@@ -187,39 +221,37 @@ export const addUserInterest = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-   
 export const deleteUserInterest = async (req, res) => {
   try {
-    const { userID, interestID } = req.body;
-
-    if (!userID || !interestID) {
-      return res.status(400).json({ message: 'UserID and InterestID are required for deleting user interest' });
+    const { userId, interestId } = req.params;
+    if (!userId || !interestId) {
+      return res.status(400).json({ message: 'userID and interestID are required' });
     }
 
-    // Check if the user exists
-    const user = await User.findById(userID);
+    const user = await PlatformUser.findOne({ ID: userId });
+    // Check if the user and interest exist
+    const interest = await Interest.findById(interestId);
 
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    if (!user || !interest) {
+      return res.status(404).json({ message: 'User or Interest not found' });
     }
+    
 
-    // Check if the user has the specified interest
-    if (!user.Interests.includes(interestID)) {
-      return res.status(400).json({ message: 'User does not have this interest' });
+    const interestIndex = user.Interests.indexOf(interestId);
+    if (interestIndex === -1) {
+      return res.status(400).json({ message: "User has no such interest" });
     }
-
-    // Remove the interest from the user's interests
-    user.Interests = user.Interests.filter(id => id !== interestID);
+    user.Interests.splice(interestIndex, 1);
     await user.save();
 
-    // Remove the user from the interest's users
-    await Interest.findByIdAndUpdate(interestID, { $pull: { Users: userID } });
-
-    res.status(200).json({ message: 'User interest deleted successfully' });
+    res.status(200).json({ message: 'Interest removed successfully', user });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+
 export const getUserInterestById = async (req, res) => {
   try {
     const { userID, interestID } = req.params;

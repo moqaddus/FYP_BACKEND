@@ -7,6 +7,7 @@ import Interests from '../models/interest.js';
 import Organization from '../models/organization.js';
 import Event from '../models/event.js';
 import User from '../models/user.js'
+import Attendee from '../models/attendee.js';
 
 let interestIds;
 
@@ -98,48 +99,6 @@ export const updateUser = async (req, res, next) => {
 };
 
 
-///   3 may
-// i have commented it may 4 because i dont need these things
-//will get platfromUser id.
-
-// export const updateUser=async(req,res,next)=>{
-//   const {id:_id}=req.user
-//   const foundUser=await userSchema.findOne({_id});
-//   if(foundUser)
-//   {
-//     const {Password,Username}=req.body;
-//     if(Username)
-//     {
-//       const usernameInUse=await userSchema.exists({Username});
-//       res.status(409).json({message:'Username not available'})
-//     }
-//     if(Password || Username)
-//     {
-//       const hashedPassword=await bcrypt.hash(Password,10);
-//       req.body.Password=hashedPassword
-//       await userSchema.updateOne({_id},req.body)
-//     }
-//     const {Bio,Interests}=req.body;
-//     if(Interests)
-//     {
-//       interestIds = await Promise.all(Interests.map(async (interestName) => {
-//         // Try to find the interest by name
-//         const interest = await InterestSchema.findOne({ Name: interestName });
-  
-//         // If found, return the ID; otherwise, you might want to handle this case
-//         return interest ? interest._id : null;
-//       }));
-//     }
-//     const User=await PlatfromUser.updateOne({ID:_id,Interests:interestIds,Bio})
-//     res.status(201).json({user:User})
-//   }
-//   else
-//   {
-//     res.status(404).json("User not found")
-//   }
-  
-// }
-
 //Will get id of platform user
 export const getOneUser=async(req,res,next)=>{
 
@@ -199,7 +158,6 @@ export const uploadProfileImg = async (req, res) => {
       });
     }
     const { id:ID } = req.user;
-    console.log('hello');
     const user =await userSchema.findById(ID);
     if (!user || user.type !== 'PlatformUser') {
       return res.status(403).json({ message: 'Unauthorized: User is not an Platform User' });
@@ -250,64 +208,126 @@ const extractPublicId = (imageUrl) => {
   return publicId;
 };
 
+// export const getEventsByUserInterest = async (req, res) => {
+//   try {
+//     const userID = req.user.id; // Assuming the user ID is stored in the req.user object after authentication
+//     const userType = req.user.type; // Extract the user type from the JWT token
+
+//     console.log(userID)
+//     console.log(userType)
+//     // Find the platform user with the given user ID
+//     const platformUser = await PlatfromUser.findOne({ ID: userID }).populate('Interests');
+
+//     if (!platformUser) {
+//       return res.status(404).json({ message: 'Platform User not found' });
+//     }
+
+//     // Extract platform user interests
+//     const userInterests = platformUser.Interests.map(interest => interest._id);
+
+//     const events = await Event.aggregate([
+//       {
+//         $match: { EventTag: { $in: userInterests } }
+//       },
+//       {
+//         $lookup: {
+//           from: 'organizations', // Assuming the organization collection name is 'organizations'
+//           localField: 'Organization',
+//           foreignField: '_id',
+//           as: 'organization'
+//         }
+//       },
+//       {
+//         $lookup: {
+//           from: 'users', // Assuming the user collection name is 'users'
+//           localField: 'organization.ID', // Assuming the user ID is stored in the 'ID' field of the organization
+//           foreignField: '_id',
+//           as: 'user'
+//         }
+//       },
+//       {
+//         $addFields: {
+//           'organization.Username': { $arrayElemAt: ['$user.Username', 0] }
+          
+//         }
+//       },
+//       {
+//         $project: {
+//           _id: 1,
+//           Name: 1,
+//           'organization.Name': 1, // Assuming the organization has a 'Name' field
+//           'organization.Username': 1 // Assuming the user has a 'Username' field
+//         }
+//       }
+//     ]);
+
+//     res.status(200).json({ type: userType, events });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+
 export const getEventsByUserInterest = async (req, res) => {
   try {
     const userID = req.user.id; // Assuming the user ID is stored in the req.user object after authentication
     const userType = req.user.type; // Extract the user type from the JWT token
 
-    console.log(userID)
-    console.log(userType)
+    console.log(userID);
+    console.log(userType);
     // Find the platform user with the given user ID
-    const platformUser = await PlatfromUser.findOne({ ID: userID }).populate('Interests');
+    const platformUser = await PlatfromUser.findOne({ ID: userID }).populate(
+      "Interests"
+    );
 
     if (!platformUser) {
-      return res.status(404).json({ message: 'Platform User not found' });
+      return res.status(404).json({ message: "Platform User not found" });
     }
 
     // Extract platform user interests
-    const userInterests = platformUser.Interests.map(interest => interest._id);
+    const userInterests = platformUser.Interests.map(
+      (interest) => interest._id
+    );
 
     const events = await Event.aggregate([
       {
-        $match: { EventTag: { $in: userInterests } }
+        $match: { EventTag: { $in: userInterests } },
       },
       {
         $lookup: {
-          from: 'organizations', // Assuming the organization collection name is 'organizations'
-          localField: 'Organization',
-          foreignField: '_id',
-          as: 'organization'
-        }
+          from: "organizations", // Assuming the organization collection name is 'organizations'
+          localField: "Organization",
+          foreignField: "_id",
+          as: "organization",
+        },
       },
       {
-        $lookup: {
-          from: 'users', // Assuming the user collection name is 'users'
-          localField: 'organization.ID', // Assuming the user ID is stored in the 'ID' field of the organization
-          foreignField: '_id',
-          as: 'user'
-        }
-      },
-      {
-        $addFields: {
-          'organization.Username': { $arrayElemAt: ['$user.Username', 0] }
-          
-        }
+        $unwind: "$organization", // Unwind the organization array
       },
       {
         $project: {
           _id: 1,
           Name: 1,
-          'organization.Name': 1, // Assuming the organization has a 'Name' field
-          'organization.Username': 1 // Assuming the user has a 'Username' field
-        }
-      }
+          "organization.Username": 1, // Assuming the organization has a 'Username' field
+          "organization.ImagePath": 1, // Adding ImagePath to the projection
+        },
+      },
     ]);
 
-    res.status(200).json({ type: userType, events });
+    // Format the response according to the specified format
+    const formattedEvents = events.map((event) => ({
+      _id: event._id,
+      Name: event.Name,
+      organization: [{ Username: event.organization.Username }],
+      imagePath: event.organization.ImagePath,
+    }));
+
+    res.status(200).json({ type: userType, events: formattedEvents });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 
 
@@ -345,6 +365,58 @@ export const updateUserOrganizations = async (req, res, next) => {
 
 
 
+// export const getUserOrganizationsEvents = async (req, res, next) => {
+//   try {
+//     const { id: userId, type: userType } = req.user; // Get user ID and type from token
+
+//     // Find the user in platformUser
+//     const user = await PlatfromUser.findOne({ ID: userId });
+
+    
+//     if (!user) {
+//       return res.status(404).json({ message: "User not found" });
+//     }
+
+//     // Retrieve events for each organization followed by the user
+//     const events = [];
+//     for (const organization of user.OrganizationsFollowed) {
+//      // const orgId = organization.ID;
+     
+
+//       // Find the organization in the Organization model
+//       const org = await Organization.findOne({ID:organization});
+//       if (!org) {
+//         continue; // Skip if organization not found
+//       }
+
+//       // Get the username associated with the organization's ID
+//       const orgUser = await userSchema.findById(organization);
+      
+//       const organizationName = orgUser ? orgUser.Username : "Unknown";
+
+//       // Find events associated with the organization
+//       const orgEvents = await Event.find({ Organization:org._id });
+
+//       // Transform events data to match the structure of events returned by getEventsByUserInterest
+//       const eventData = orgEvents.map(event => ({
+//         _id: event._id,
+//         Name: event.Name,
+//         organization: [{ Username: organizationName }],
+//         imagePath:org.ImagePath
+//       }));
+
+//       // Add the organization's events to the response
+//       events.push(...eventData);
+//     }
+
+//     // Respond with the list of events associated with organizations followed by the user
+//     res.status(200).json({ type: userType, events });
+//   } catch (error) {
+//     next(error); // Pass the error to the error handling middleware
+//   }
+// };
+
+
 export const getUserOrganizationsEvents = async (req, res, next) => {
   try {
     const { id: userId, type: userType } = req.user; // Get user ID and type from token
@@ -352,7 +424,6 @@ export const getUserOrganizationsEvents = async (req, res, next) => {
     // Find the user in platformUser
     const user = await PlatfromUser.findOne({ ID: userId });
 
-    
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -360,42 +431,40 @@ export const getUserOrganizationsEvents = async (req, res, next) => {
     // Retrieve events for each organization followed by the user
     const events = [];
     for (const organization of user.OrganizationsFollowed) {
-     // const orgId = organization.ID;
-     
+      // const orgId = organization.ID;
 
       // Find the organization in the Organization model
-      const org = await Organization.findOne({ID:organization});
+      const org = await Organization.findOne({ ID: organization });
       if (!org) {
         continue; // Skip if organization not found
       }
 
       // Get the username associated with the organization's ID
       const orgUser = await userSchema.findById(organization);
-      
-      const organizationName = orgUser ? orgUser.Username : "Unknown";
+      const organizationName = orgUser ? orgUser.Name : "Unknown";
 
       // Find events associated with the organization
-      const orgEvents = await Event.find({ Organization:org._id });
+      const orgEvents = await Event.find({ Organization: org._id });
 
       // Transform events data to match the structure of events returned by getEventsByUserInterest
-      const eventData = orgEvents.map(event => ({
+      const eventData = orgEvents.map((event) => ({
         _id: event._id,
         Name: event.Name,
         organization: [{ Username: organizationName }],
-        imagePath:org.ImagePath
+        imagePath: org.ImagePath,
       }));
 
       // Add the organization's events to the response
       events.push(...eventData);
     }
 
+    console.log(events);
     // Respond with the list of events associated with organizations followed by the user
     res.status(200).json({ type: userType, events });
   } catch (error) {
     next(error); // Pass the error to the error handling middleware
   }
 };
-
 
 export const getUsertype = async (req, res, next) => {
   try {
@@ -428,7 +497,9 @@ export const followOrganization = async (req, res, next) => {
       return res.status(400).json({ message: "User already follows this organization" });
     }
 
-    // Add the organization to the user's followed organizations list
+    // Add the organization to the user's followed organizations list and vice versa
+    foundOrganization.UserFollowers.push(userId);
+    await foundOrganization.save();
     foundUser.OrganizationsFollowed.push(orgId);
     await foundUser.save();
 
@@ -460,10 +531,16 @@ export const unfollowOrganization = async (req, res, next) => {
     if (organizationIndex === -1) {
       return res.status(400).json({ message: "User is not following this organization" });
     }
-
-    // Remove the organization from the user's followed organizations list
+    
+    const userIndex = foundOrganization.UserFollowers.indexOf(userId);
+    if (userIndex === -1) {
+      return res.status(400).json({ message: "Organization has no such follower" });
+    }
+    //Remove the organization from the user's followed organizations list
     foundUser.OrganizationsFollowed.splice(organizationIndex, 1);
     await foundUser.save();
+    foundOrganization.UserFollowers.splice(userIndex, 1);
+    await foundOrganization.save();
 
     res.status(200).json({ message: "Organization unfollowed successfully" });
   } catch (error) {
@@ -472,67 +549,11 @@ export const unfollowOrganization = async (req, res, next) => {
   }
 };
 
-// export const getFollowersOfUser = async (req, res, next) => {
-//   try {
-//     const { userId } = req.params;
-
-//     // Find the platform user in the database
-//     const user = await PlatfromUser.findOne({ ID: userId }).populate('OrganizationsFollowed');
-//     if (!user) {
-//       return res.status(404).json({ message: "User not found" });
-//     }
-
-//     // Retrieve organizations followed by the user
-//     const followedOrganizations = await Promise.all(
-//       user.OrganizationsFollowed.map(async (org) => {
-//         const organization = await Organization.findOne({ _id: org._id });
-//         const orgUser = await userSchema.findOne({ _id: organization.ID });
-//         return {
-//           name: orgUser.Name, // Name from the User table
-//           image: organization.ImagePath // ImagePath from the Organization table
-//         };
-//       })
-//     );
-
-//     res.status(200).json(followedOrganizations);
-//   } catch (error) {
-//     console.error('Error fetching followed organizations:', error);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
-
-// 
-
-// export const getFollowersOfUser = async (req, res) => {
-//   const userId = req.params.userId;
-//   console.log(userId);
-//   try {
-//     const platformUser = await PlatfromUser.findOne({ID:userId});
-//     console.log(platformUser.OrganizationsFollowed);
-
-//     if (!platformUser) {
-//       return res.status(404).json({ message: 'Platform user not found' });
-//     }
-
-//     const followedOrganizations = platformUser.OrganizationsFollowed.map((organization) => ({
-//       id: organization._id,
-//       name: organization.Name, // Assuming a 'Name' field exists in the Organization schema
-//     }));
-//     console.log(followedOrganizations);
-//     res.json({ organizations: followedOrganizations });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: 'Internal server error' });
-//   }
-// }
-
 export const getFollowersOfUser = async (req, res) => {
   const userId = req.params.userId;
-  console.log(userId);
 
   try {
     const platformUser = await PlatfromUser.findOne({ ID: userId });
-    console.log(platformUser);
 
     if (!platformUser) {
       return res.status(404).json({ message: 'Platform user not found' });
@@ -549,11 +570,54 @@ export const getFollowersOfUser = async (req, res) => {
         }
       }
     }
-
-    console.log(followedOrganizations);
     res.json({ organizations: followedOrganizations });
   } catch (error) {
     console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+export const getEventsOfAttendees = async (req, res,next) => {
+  const attendeeId = req.params.attendeeId;
+  console.log(attendeeId);
+
+  try {
+    const currentDate = new Date().toISOString().split('T')[0]; // Get the current date in YYYY-MM-DD format
+    const user=await PlatfromUser.findOne({ID:attendeeId});
+    if(!user)
+      {
+        return res.status(404).json({ message: 'No user found.' });
+      }
+    // Find attendees with unchecked-in events
+    const attendeeRecords = await Attendee.find({
+      UserID: user._id,
+      CheckedIn: false,
+    }).populate({
+      path: 'EventID',
+      select: 'Name Organization EventDate',
+      match: { EventDate: { $lt: currentDate } }, // Only fetch events where the EventDate is less than current date
+      populate: {
+        path: 'Organization',
+        select: 'ImagePath',
+      },
+    });
+
+    if (!attendeeRecords || attendeeRecords.length === 0) {
+      return res.status(404).json({ message: 'No events found for review' });
+    }
+    // Filter and map the results
+    const events = attendeeRecords.map(record => ({
+      eventId: record.EventID._id,
+      eventName: record.EventID.Name,
+      attendeeId: record._id,
+      organizationImagePath: record.EventID.Organization ? record.EventID.Organization.ImagePath : null,
+    }));
+
+
+    res.json({ events });
+  } catch (error) {
+    console.error('Error fetching events for review:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };

@@ -255,6 +255,36 @@ export const getOrganization = async (req, res, next) => {
   }
 };
 
+// export const getOrganizationEvents = async (req, res) => {
+//   try {
+//     const userID = req.user.id; // Assuming you have middleware to extract userID from token and attach it to req.user
+//     const userType = req.user.type; // Extract the user type from the JWT token
+
+//     // Find organization ID using userID
+//     const organization = await orgSchema.findOne({ ID: userID });
+//     if (!organization) {
+//       return res.status(404).json({ message: "Organization not found" });
+//     }
+
+//     // Find all events associated with the organization
+//     const events = await Event.find({ Organization: organization._id });
+
+//     // Transform events data to match the structure of events returned by getEventsByUserInterest
+//     const eventData = events.map((event) => ({
+//       _id: event._id,
+//       Name: event.Name,
+//       organization: [{ Username: req.user.username }],
+//       imagePath:organization.ImagePath // Assuming req.user.username contains the organization username
+//     }));
+
+//     res.json({ type: userType, events: eventData });
+//   } catch (error) {
+//     console.error("Error fetching events:", error);
+//     res.status(500).json({ message: "Internal server error" });
+//   }
+// };
+
+
 export const getOrganizationEvents = async (req, res) => {
   try {
     const userID = req.user.id; // Assuming you have middleware to extract userID from token and attach it to req.user
@@ -276,13 +306,13 @@ export const getOrganizationEvents = async (req, res) => {
       organization: [{ Username: req.user.username }],
       imagePath:organization.ImagePath // Assuming req.user.username contains the organization username
     }));
-
     res.json({ type: userType, events: eventData });
   } catch (error) {
     console.error("Error fetching events:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 //get User for Organization
 
@@ -339,5 +369,36 @@ export const checkUserFollowOrganization = async (req, res, next) => {
   } catch (error) {
     console.error("Error checking user's organization follow:", error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
+export const getFollowersOfOrganization = async (req, res) => {
+  const orgId = req.params.orgId;
+
+  try {
+    const organization = await orgSchema.findOne({ ID: orgId });
+
+    if (!organization) {
+      return res.status(404).json({ message: 'Organization not found' });
+    }
+
+    const followers = [];
+
+    for (const userId of organization.UserFollowers) {
+      const platformUser = await PlatformUser.findOne({ ID: userId });
+      if (platformUser) {
+        const user = await userSchema.findById(platformUser.ID, 'Name');
+        if (user) {
+          followers.push({ id: platformUser.ID, name: user.Name, imagePath: platformUser.ImagePath });
+        }
+      }
+    }
+
+    res.json({ followers });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
